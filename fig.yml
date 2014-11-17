@@ -1,0 +1,39 @@
+postfix:
+    build: .
+    command: ["/run-postfix.sh"]
+    hostname: mail
+    domainname: modusponens.org
+    ports:
+        - "25:25"
+        - "465:465"
+        - "587:587"
+    links:
+        - opendkim
+        - spamassassin
+    volumes:
+        - /etc/ssl:/etc/ssl:ro
+        - /etc/aliases:/etc/aliases:ro
+        - /dev/log:/dev/log
+        - /dev/log:/var/spool/postfix/dev/log
+    environment:
+        maildomain: modusponens.org
+        mailhost: mail.modusponens.org
+
+opendkim:
+    build: .
+    command: ["/run-opendkim.sh"]
+    expose:
+        - 12301
+    volumes:
+        - /etc/ssl:/etc/ssl:ro
+        - /dev/log:/dev/log
+    environment:
+        maildomain: modusponens.org
+
+spamassassin:
+    build: .
+    command: ["spamd"]
+    expose:
+        - 783
+    volumes:
+        - /dev/log:/dev/log
