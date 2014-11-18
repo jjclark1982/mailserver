@@ -1,9 +1,9 @@
 #!/bin/sh -e
 
+cp /etc/hosts /var/spool/postfix/etc/hosts
+cp /etc/services /var/spool/postfix/etc/services
+cp /etc/resolv.conf /var/spool/postfix/etc/resolv.conf
 [ -e /dev/log ] || ln -s /var/run/syslog/log /dev/log
-
-# Copy important files into chroot directory
-(cd /etc; cp hosts services resolv.conf /var/spool/postfix/etc/)
 
 daemon_directory=$(postconf -h daemon_directory)
 
@@ -11,13 +11,9 @@ daemon_directory=$(postconf -h daemon_directory)
 $daemon_directory/master -t || postfix stop
 
 # Update and verify config
-if [ -z "$maildomain" ]; then
-    echo 'Cannot start Postfix because $maildomain is not set'
-    exit 1
-fi
-postconf -e myhostname="$HOSTNAME"
-postconf -e myorigin="$HOSTNAME"
-postconf -e mydestination="$maildomain localhost.localdomain localhost"
+[ -n "$maildomain" ] && postconf -e myhostname="$maildomain"
+[ -n "$maildomain" ] && postconf -e myorigin="$maildomain"
+[ -n "$mydestination" ] && postconf -e mydestination="$mydestination"
 [ -n "$mynetworks" ] && postconf -e mynetworks="$mynetworks"
 [ -n "$cert_file" ] && postconf -e smtpd_tls_cert_file="$cert_file"
 [ -n "$key_file" ] && postconf -e smtpd_tls_key_file="$key_file"
@@ -25,4 +21,4 @@ newaliases
 postfix check
 
 # Forward container arguments, signals, and stdio to master daemon.
-exec $daemon_directory/master
+exec $daemon_directory/master "$@"
